@@ -49,34 +49,42 @@ class Category:
 
 
 def create_spend_chart(categories):
-    total_spent = 0
-    percentage = []
+    amounts = list()
 
-    for cat in categories:
-        for l in cat.ledger:
-            total_spent += l["amount"]
+    # Get total spent in each category
+    for category in categories:
+        spent = 0
+        for item in category.ledger:
+            if item["amount"] < 0:
+                spent += abs(item["amount"])
+        amounts.append(round(spent, 2))
 
-    for cat in categories:
-        for l in cat.ledger:
-            percentage.append(round((l["amount"] / total_spent) * 100))
+    # Calculate percentage rounded down to the nearest 10
+    total = round(sum(amounts), 2)
+    spent_percentage = list(map(lambda amount: int(
+        (((amount / total) * 10) // 1) * 10), amounts))
 
-    i = 100
-    j = 0
-    table = ''
+    # Create the table substrings
+    header = "Percentage spent by category\n"
+    table = ""
 
-    while i >= 0:
-        side = f'{i: >3}| '
-        mid = ''
-        for p in percentage:
-            if p >= i:
-                mid += 'o '
+    for value in reversed(range(0, 101, 10)):
+        table += str(value).rjust(3) + '|'
+        for percent in spent_percentage:
+            if percent >= value:
+                table += " o "
             else:
-                mid += '  '
-        table += side + mid + '\n'
-        i -= 10
+                table += "   "
+        table += " \n"
 
-    table += ' ' * 3 + len(mid) * '-' + '\n'
+    footer = "    " + "-" * ((3 * len(categories)) + 1) + "\n"
 
-    print(table)
+    descriptions = list(map(lambda category: category.name, categories))
+    max_length = max(map(lambda description: len(description), descriptions))
+    descriptions = list(
+        map(lambda description: description.ljust(max_length), descriptions))
 
-    return table
+    for x in zip(*descriptions):
+        footer += "    " + "".join(map(lambda s: s.center(3), x)) + " \n"
+
+    return (header + table + footer).rstrip("\n")
